@@ -38,6 +38,7 @@ public class Pacman {
 	int redy=250;
 	
 	int correctdir;
+	int nextdir;
 	int targetx;
 	int targety;
 
@@ -127,14 +128,9 @@ public class Pacman {
 			targety=(pacy-20)/20;
 			
 			int newdir=(explorer((redx-105)/20, (redy-20)/20));
-			if (!blocked(dirtostring[newdir],redy,redx)){
-			redy+=(dirlist[newdir][0]);
-			redx+=(dirlist[newdir][1]);
-			correctdir=newdir;}
-			
-			else {redy+=(dirlist[correctdir][0]);
-			redx+=(dirlist[correctdir][1]);}
-			System.out.println(dirtostring[correctdir]);
+			if (!blocked(dirtostring[newdir],redy,redx))correctdir=newdir;
+			redx+=(dirlist[correctdir][1]);
+			redy+=(dirlist[correctdir][0]);
 			
 			window.repaint();
 		}
@@ -204,7 +200,7 @@ public class Pacman {
 //		for (int x=0; x<newgamestate.length;x++){
 //			System.out.println(Arrays.toString(newgamestate[x]));
 //		}
-		return correctdir;
+		return nextdir;
 	}
 	void explore(int ycoord, int xcoord, int acc, int dir,int[][] gamestate){
 		for (int x=0; x<4; x++){
@@ -213,7 +209,7 @@ public class Pacman {
 			
 			
 				if (next==0||next>acc){
-					if (ycoord==targety && xcoord==targetx)	{correctdir=dir; }
+					if (ycoord==targety && xcoord==targetx)	{nextdir=dir; }
 					
 					
 					
