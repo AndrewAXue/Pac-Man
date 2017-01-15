@@ -2,7 +2,9 @@ package Pacman;
 //Made by Andrew Xue
 //a3xue@edu.uwaterloo.ca
 //PACMAN! THIS GAME IS NOT FINISHED. Use the arrow keys to control PacMan. This game
-//    uses a Queue ADT so you can enter multiple commands pre-emptively. 
+//    uses a Queue ADT so you can enter multiple commands pre-emptively. The movement
+//    of the red square is produced using a pathfinding algorithm which finds the most
+//    efficient path to pacman's position and follows that.
 //Part of a project to learn Java over the winter break and create retro video games
 
 import java.awt.Color;
@@ -31,6 +33,13 @@ public class Pacman {
 		{{1,13,14},{6,7,8,19,20},{10,7,8,19,20},{26,0,27}},
 		{{0,13,15},{7,2,3,4,21,22,27,28},{2,27,28},{16,2,3,4,21,22,27,28},{21,27,28},{23,13,15}},
 		{{0,0,27},{5,0,27},{9,5,22},{15,5,22},{19,0,27},{15,7,8,19,20},{12,10,17}}};
+	// biglist is the base of the gamestate and contains data for all the blocks which you cannot move on
+	// the biglist is a list of {listofhorizontalblocksoflength3, listofverticalblocksoflength3,
+	//           listofhorizontalblocksoflength4, listofverticalblocksoflength4,
+	//			 listofhorizontalblocksoflength5, listofverticalblocksoflength5}
+	// where a listofhorizontalblocksX is a list of lists each of which contain {x, n1,n2...nk} elements
+	// which in turn represent a horizontal row of blocks of X length starting at point (x,n1) for all nk
+	// the same for verticalblocks except (n1,x)
 	
 	String pacdir="left";
 	int pacx=(120+(20*13));
@@ -46,6 +55,7 @@ public class Pacman {
 
 	// 31 deep, 28 wide
 	public static void main(String[] args){
+		// Places the blocks which cannot be moved on onto the gamestate
 		for (int x=1; x<31; x++){
 			for (int y=1; y<28;y++){
 				if (x<=8||x>=20)gamestate[x][y]=-2;
@@ -83,6 +93,7 @@ public class Pacman {
 		new Pacman().go();
 	}
 	
+	// Adds a KeyListener that responds to any arrow key being pressed by adding it to the queueADT
 	private class keyactions implements KeyListener {
 		public void keyPressed(KeyEvent e) {
 			if (e.getKeyCode()==KeyEvent.VK_UP&&pacdir!="up")movequeueADT.add("up");
@@ -93,6 +104,8 @@ public class Pacman {
 		public void keyTyped(KeyEvent e) {}
 		}
 	
+	// creates a window and adds all the elements of the game to it. Also implements a KeyListener
+	//    and initiates the movement of all the elements
 	void go() {
 		window.setSize(815, 720);
 		window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -105,30 +118,31 @@ public class Pacman {
 	}
 	
 	private void pacmove(){
-		
 		while (true){
+			// teleports pacman if it is on one of the edges
 			if (pacdir=="left"&&pacx<120) pacx=660;
 			if (pacdir=="right"&&pacx>655) pacx=120;
+			// checks if pacman is able to change directions to the first of the queueADT
 			if (movequeueADT.size()>=1){
 				if (!blocked(movequeueADT.get(0),pacy,pacx)){
 					pacdir=movequeueADT.get(0);
 					movequeueADT.remove(0);
 				}
+				// removes elements from the queue ADT in the case that pacman is stuck in a corner
 				if (blocked(pacdir,pacy,pacx)&&blocked(movequeueADT.get(0),pacy,pacx)) movequeueADT.remove(0);
 			}
-			
+			// move pacman based on the pacdir, a variable which dictates the direction pacman is travelling
 			if (pacdir=="left"&&!blocked("left",pacy,pacx))pacx-=1;
 			if (pacdir=="right"&&!blocked("right",pacy,pacx))pacx+=1;
 			if (pacdir=="up"&&!blocked("up",pacy,pacx))pacy-=1;
 			if (pacdir=="down"&&!blocked("down",pacy,pacx))pacy+=1;
-			
+			// pacman eats the dots if it is occupying the same grid space as the dot
 			if (gamestate[(pacy-20)/20][(pacx-105)/20]==-2)gamestate[(pacy-30)/20][(pacx-120)/20]=0;
 			
 			try {Thread.sleep(10);} catch(Exception exp){System.out.println("Runtime Error");}
-			
+			// finds the x and y grid coordinates of pacman's position
 			targetx=(pacx-105)/20;
 			targety=(pacy-20)/20;
-			System.out.println(explorer(6,5));
 			int newdir=(explorer((redx-105)/20, (redy-20)/20));
 			if (!blocked(dirtostring[newdir],redy,redx))correctdir=newdir;
 			redx+=(dirlist[correctdir][1]);
