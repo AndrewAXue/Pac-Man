@@ -11,6 +11,8 @@ import java.awt.Graphics2D;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.util.ArrayList;
+import java.util.Arrays;
+
 import javax.swing.JComponent;
 import javax.swing.JFrame;
 
@@ -126,7 +128,7 @@ public class Pacman {
 			
 			targetx=(pacx-105)/20;
 			targety=(pacy-20)/20;
-			
+			System.out.println(explorer(6,5));
 			int newdir=(explorer((redx-105)/20, (redy-20)/20));
 			if (!blocked(dirtostring[newdir],redy,redx))correctdir=newdir;
 			redx+=(dirlist[correctdir][1]);
@@ -192,7 +194,8 @@ public class Pacman {
 			}
 		}
 		for (int x=0; x<4; x++){
-			if (newgamestate[ycoord+dirlist[x][0]][xcoord+dirlist[x][1]]!=-1){
+			if (xcoord+dirlist[x][1]>=0&&xcoord+dirlist[x][1]<=27&&
+					newgamestate[ycoord+dirlist[x][0]][xcoord+dirlist[x][1]]!=-1){
 				newgamestate[ycoord+dirlist[x][0]][xcoord+dirlist[x][1]]=0;
 				explore(ycoord+dirlist[x][0],xcoord+dirlist[x][1],1,x,newgamestate);
 			}
@@ -216,8 +219,7 @@ public class Pacman {
 					gamestate[ycoord+dirlist[x][0]][xcoord+dirlist[x][1]]=acc;
 					explore(ycoord+dirlist[x][0],xcoord+dirlist[x][1],acc+1,dir,gamestate);
 				}
-				
-			
-		}}
+		}
+		}
 	}
 }
