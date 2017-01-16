@@ -25,7 +25,6 @@ public class Pacman {
 	static int[][] gamestate = new int[31][28];
 	static int[][] dirlist = {{-1,0},{0,-1},{1,0},{0,1}}; //0=up 1=left 2=down 3=right
 	static String[] dirtostring = {"up","left","down","right"};
-	int reddir=0;
 	static int[][][] biglist=
 		{{{9,9,10},{16,9,10},{0,24,25},{11,12,16},{14,12,16},{25,24,25}},
 		{{8,13,14},{20,13,14},{23,4,5,22,23},{24,7,8,19,20},{26,13,14}},
@@ -48,8 +47,12 @@ public class Pacman {
 	int redx=380;
 	int redy=250;
 	
-	int correctdir;
+	int orangex=400;
+	int orangey=250;
+	
+	int reddir;
 	int nextdir;
+	int orangedir;
 	int targetx;
 	int targety;
 
@@ -65,7 +68,8 @@ public class Pacman {
 		for (int x=0; x<28;x++){
 			gamestate[0][x]=-1;
 			gamestate[30][x]=-1;
-		}	
+		}
+		// Code for implementing the biglist onto the gamestate
 		for (int x=0; x<=4; x+=2){
 			for (int doub=0; doub<=1; doub++){
 				if (doub==0){
@@ -143,15 +147,85 @@ public class Pacman {
 			// finds the x and y grid coordinates of pacman's position
 			targetx=(pacx-105)/20;
 			targety=(pacy-20)/20;
-			int newdir=(explorer((redx-105)/20, (redy-20)/20));
-			if (!blocked(dirtostring[newdir],redy,redx))correctdir=newdir;
-			redx+=(dirlist[correctdir][1]);
-			redy+=(dirlist[correctdir][0]);
 			
+			//Finds the new direction that the red ghost should travel in using the pathfinding algorithm
+			// The red ghost will simply take the more efficient path to pacman
+			int newreddir=(explorer((redx-105)/20, (redy-20)/20,reddir));
+			if (!blocked(dirtostring[newreddir],redy,redx))reddir=newreddir;
+			redx+=(dirlist[reddir][1]);
+			redy+=(dirlist[reddir][0]);
+			
+			//Finds the new direction that the red ghost should travel in using the pathfinding algorithm
+			//The orangeghost will attempt to flank pacman by blocking off the closest intersection behind it
+			//Unfortunately very buggy.
+
+/*			int [] flanklst=flanker((orangex-105)/20, (orangey-20)/20);
+			targetx=flanklst[0];
+			targety=flanklst[1];
+			int neworangedir=(explorer((orangex-105)/20, (orangey-20)/20,orangedir));
+			if (!blocked(dirtostring[neworangedir],orangey,orangex))orangedir=neworangedir;
+			orangex+=(dirlist[orangedir][1]);
+			orangey+=(dirlist[orangedir][0]);*/
+
 			window.repaint();
 		}
 	}
-
+	// Outputs the coordinates of the closest intersection behind pacman
+	private int[] flanker(int xcoord, int ycoord){
+		int [] flank={targetx,targety};
+		if (pacdir=="left"){
+			if (targetx==26){
+				flank[0]=26;
+				flank[1]=targety;
+				return flank;}
+			else {
+				for (int x=targetx; x<=26;x++){
+					if (gamestate[targety-1][x]!=-1||gamestate[targety+1][x]!=-1){
+						flank[0]=x;
+						flank[1]=targety;
+						return flank;
+					}
+				}
+			}
+		}
+		if (pacdir=="right"){
+			if (targetx==1){
+				flank[0]=1;
+						
+				flank[1]=targety;
+				return flank;}
+			else {
+				for (int x=targetx; x>=1;x--){
+					if (gamestate[targety-1][x]!=-1||gamestate[targety+1][x]!=-1){
+						flank[0]=x;
+						flank[1]=targety;
+						return flank;
+					}
+				}
+			}
+		}
+		if (pacdir=="up"){
+				for (int x=targety; x>=1;x--){
+					if (gamestate[x][targetx-1]!=-1||gamestate[x][targetx+1]!=-1){
+						flank[0]=x;
+						flank[1]=targety;
+						return flank;
+					}
+				}
+		}
+		if (pacdir=="down"){
+			for (int x=targety; x<=26;x++){
+				if (gamestate[x][targetx-1]!=-1||gamestate[x][targetx+1]!=-1){
+					flank[0]=x;
+					flank[1]=targety;
+					return flank;
+				}
+			}
+	}
+		return flank;
+		
+	}
+	// Checks if the piece is able to keep moving or if there is a block in front of it
 	private boolean blocked(String dir,int ycoord,int xcoord){
 		if (dir=="left"&&(gamestate[((ycoord-30)/20)][((xcoord-121)/20)]==-1
 				||gamestate[((ycoord-11)/20)][((xcoord-121)/20)]==-1)) return true;
@@ -166,7 +240,7 @@ public class Pacman {
 				gamestate[((ycoord-10)/20)][((xcoord-101)/20)]==-1)) return true;
 		return false;
 	}
-	
+	// Draws the board and all the elements on it
 	private class pacgrid extends JComponent {
 		public void paintComponent(Graphics g){
 			Graphics2D grap = (Graphics2D) g;
@@ -191,14 +265,18 @@ public class Pacman {
 					grap.fillRect(120+(20*y)+8, (30+(20*x))+8, 4, 4);
 				}
 			}
+			grap.setColor(Color.ORANGE);
+			grap.fillRect(orangex, orangey, 20, 20);
+
 			grap.setColor(Color.YELLOW);
 			grap.fillOval(pacx, pacy, 20, 20);
 			//{23,13}
 		}
 	}
 	
-	
-	int explorer(int xcoord, int ycoord){
+	// Pathfinding algorithm. Finds the most efficient path from one grid coordinate
+	// to another and outputs the direction of the first step of this path
+	int explorer(int xcoord, int ycoord, int dirtype){
 		int[][] newgamestate = new int[31][28];
 		for (int x=0; x<gamestate.length;x++){
 			for (int y=0;y<gamestate[0].length;y++){
@@ -208,28 +286,20 @@ public class Pacman {
 			}
 		}
 		for (int x=0; x<4; x++){
-			if (xcoord+dirlist[x][1]>=0&&xcoord+dirlist[x][1]<=27&&
+			if (x!=(dirtype+2)%4&&xcoord+dirlist[x][1]>=0&&xcoord+dirlist[x][1]<=27&&
 					newgamestate[ycoord+dirlist[x][0]][xcoord+dirlist[x][1]]!=-1){
 				newgamestate[ycoord+dirlist[x][0]][xcoord+dirlist[x][1]]=0;
 				explore(ycoord+dirlist[x][0],xcoord+dirlist[x][1],1,x,newgamestate);
 			}
 		}
-//		for (int x=0; x<newgamestate.length;x++){
-//			System.out.println(Arrays.toString(newgamestate[x]));
-//		}
 		return nextdir;
 	}
 	void explore(int ycoord, int xcoord, int acc, int dir,int[][] gamestate){
 		for (int x=0; x<4; x++){
 			if (xcoord+dirlist[x][1]>=0&&xcoord+dirlist[x][1]<=27){
 			int next = (gamestate[ycoord+dirlist[x][0]][xcoord+dirlist[x][1]]);
-			
-			
 				if (next==0||next>acc){
-					if (ycoord==targety && xcoord==targetx)	{nextdir=dir; }
-					
-					
-					
+					if (ycoord==targety && xcoord==targetx)	nextdir=dir; 
 					gamestate[ycoord+dirlist[x][0]][xcoord+dirlist[x][1]]=acc;
 					explore(ycoord+dirlist[x][0],xcoord+dirlist[x][1],acc+1,dir,gamestate);
 				}
