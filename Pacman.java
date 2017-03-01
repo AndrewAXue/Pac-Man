@@ -126,7 +126,9 @@ public class Pacman {
 			// teleports pacman if it is on one of the edges
 			if (pacdir=="left"&&pacx<120) pacx=660;
 			if (pacdir=="right"&&pacx>655) pacx=120;
-			// checks if pacman is able to change directions to the first of the queueADT
+			if (dirtostring[reddir]=="left"&&redx<120) redx=660;
+			if (dirtostring[reddir]=="right"&&redx>655) redx=120;
+			// checks if pacman is able to change directions to the first of the queueADT and makes the change
 			if (movequeueADT.size()>=1){
 				if (!blocked(movequeueADT.get(0),pacy,pacx)){
 					pacdir=movequeueADT.get(0);
@@ -135,7 +137,7 @@ public class Pacman {
 				// removes elements from the queue ADT in the case that pacman is stuck in a corner
 				if (blocked(pacdir,pacy,pacx)&&blocked(movequeueADT.get(0),pacy,pacx)) movequeueADT.remove(0);
 			}
-			// move pacman based on the pacdir, a variable which dictates the direction pacman is travelling
+			// move pacman based on the pacdir, a variable which dictates the direction pacman is traveling
 			if (pacdir=="left"&&!blocked("left",pacy,pacx))pacx-=1;
 			if (pacdir=="right"&&!blocked("right",pacy,pacx))pacx+=1;
 			if (pacdir=="up"&&!blocked("up",pacy,pacx))pacy-=1;
@@ -143,21 +145,22 @@ public class Pacman {
 			// pacman eats the dots if it is occupying the same grid space as the dot
 			if (gamestate[(pacy-20)/20][(pacx-105)/20]==-2)gamestate[(pacy-30)/20][(pacx-120)/20]=0;
 			
-			try {Thread.sleep(10);} catch(Exception exp){System.out.println("Runtime Error");}
-			// finds the x and y grid coordinates of pacman's position
+			try {Thread.sleep(10);} 
+			catch(Exception exp){System.out.println("Runtime Error");}
+			
+			// finds the x and y grid coordinates of pacman's position to be used for pathfinding
 			targetx=(pacx-105)/20;
 			targety=(pacy-20)/20;
 			
 			//Finds the new direction that the red ghost should travel in using the pathfinding algorithm
-			// The red ghost will simply take the more efficient path to pacman
+			// The red ghost will simply take the most efficient path to pacman
 			int newreddir=(explorer((redx-105)/20, (redy-20)/20,reddir));
 			if (!blocked(dirtostring[newreddir],redy,redx))reddir=newreddir;
 			redx+=(dirlist[reddir][1]);
 			redy+=(dirlist[reddir][0]);
 			
-			//Finds the new direction that the red ghost should travel in using the pathfinding algorithm
 			//The orangeghost will attempt to flank pacman by blocking off the closest intersection behind it
-			//Unfortunately very buggy.
+			//Unfortunately bugged.
 
 /*			int [] flanklst=flanker((orangex-105)/20, (orangey-20)/20);
 			targetx=flanklst[0];
@@ -170,7 +173,9 @@ public class Pacman {
 			window.repaint();
 		}
 	}
-	// Outputs the coordinates of the closest intersection behind pacman
+	// Outputs the coordinates of the closest intersection behind pacman.i.e. the target for orange ghost. 
+	// Does this by moving in the opposite direction as pacman and returns the coordinates of the first
+	// intersection behind pacman.
 	private int[] flanker(int xcoord, int ycoord){
 		int [] flank={targetx,targety};
 		if (pacdir=="left"){
@@ -222,9 +227,9 @@ public class Pacman {
 				}
 			}
 	}
-		return flank;
-		
+		return flank;	
 	}
+	
 	// Checks if the piece is able to keep moving or if there is a block in front of it
 	private boolean blocked(String dir,int ycoord,int xcoord){
 		if (dir=="left"&&(gamestate[((ycoord-30)/20)][((xcoord-121)/20)]==-1
@@ -240,17 +245,20 @@ public class Pacman {
 				gamestate[((ycoord-10)/20)][((xcoord-101)/20)]==-1)) return true;
 		return false;
 	}
+	
 	// Draws the board and all the elements on it
 	private class pacgrid extends JComponent {
 		public void paintComponent(Graphics g){
 			Graphics2D grap = (Graphics2D) g;
 			// grid size 28x36
+			// Draws background
 			grap.setColor(Color.RED);
 			grap.fillRect(0, 0, 815,720);
 			grap.setColor(Color.BLACK);
 			grap.fillRect(5, 5, 800, 675);
 			grap.setColor(Color.BLUE);
 			
+			//draws impassable terrain
 			for (int x=0; x<31;x++){
 				for (int y=0;y<28;y++){
 					if (gamestate[x][y]==-1)
@@ -258,6 +266,7 @@ public class Pacman {
 				}
 			}
 			grap.setColor(Color.RED);
+			// Draws red ghost
 			grap.fillRect(redx, redy, 20, 20);
 			for (int x=0; x<31;x++){
 				for (int y=0;y<28;y++){
@@ -266,17 +275,20 @@ public class Pacman {
 				}
 			}
 			grap.setColor(Color.ORANGE);
+			// Draws orange ghost
 			grap.fillRect(orangex, orangey, 20, 20);
 
 			grap.setColor(Color.YELLOW);
+			// Draws pacman
 			grap.fillOval(pacx, pacy, 20, 20);
-			//{23,13}
 		}
 	}
 	
-	// Pathfinding algorithm. Finds the most efficient path from one grid coordinate
+	// Finds the most efficient path from one grid coordinate
 	// to another and outputs the direction of the first step of this path
 	int explorer(int xcoord, int ycoord, int dirtype){
+		
+		// Creates a new grid to be manipulated with algorithm
 		int[][] newgamestate = new int[31][28];
 		for (int x=0; x<gamestate.length;x++){
 			for (int y=0;y<gamestate[0].length;y++){
@@ -285,6 +297,8 @@ public class Pacman {
 				else newgamestate[x][y]=0;
 			}
 		}
+		
+		//Explores initial basic directions within the boundaries
 		for (int x=0; x<4; x++){
 			if (x!=(dirtype+2)%4&&xcoord+dirlist[x][1]>=0&&xcoord+dirlist[x][1]<=27&&
 					newgamestate[ycoord+dirlist[x][0]][xcoord+dirlist[x][1]]!=-1){
@@ -294,12 +308,21 @@ public class Pacman {
 		}
 		return nextdir;
 	}
+	
+	// Pathfinding algorithm. This algorithm iteratively and recursively searches every square of the grid
+	// starting from the beginning point. If the next explored square is unexplored or the number of steps
+	// needed to get there is less efficient then the current path, the number of steps is replaced by the
+	// current number of steps taken. However if the previously explored path is more efficient, then the
+	// algorithm is cut off and the next iteration is allowed to run. THis makes the algorithm much more
+	// efficient and will approach a O(n) or linear run time.
 	void explore(int ycoord, int xcoord, int acc, int dir,int[][] gamestate){
 		for (int x=0; x<4; x++){
 			if (xcoord+dirlist[x][1]>=0&&xcoord+dirlist[x][1]<=27){
 			int next = (gamestate[ycoord+dirlist[x][0]][xcoord+dirlist[x][1]]);
+			// Current path MUST be more efficient, else it will be cut off.
 				if (next==0||next>acc){
-					if (ycoord==targety && xcoord==targetx)	nextdir=dir; 
+					if (ycoord==targety && xcoord==targetx)	nextdir=dir;
+					// All four directions are explored recursively
 					gamestate[ycoord+dirlist[x][0]][xcoord+dirlist[x][1]]=acc;
 					explore(ycoord+dirlist[x][0],xcoord+dirlist[x][1],acc+1,dir,gamestate);
 				}
